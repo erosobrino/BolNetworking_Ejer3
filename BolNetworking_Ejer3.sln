@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
 VisualStudioVersion = 15.0.28010.2026
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BolNetworking_Ejer3", "BolNetworking_Ejer3\BolNetworking_Ejer3.csproj", "{C6D71E7A-21A9-40E8-96F0-375C94509F0A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "BolNetworking_Ejer3\Server.csproj", "{C6D71E7A-21A9-40E8-96F0-375C94509F0A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
