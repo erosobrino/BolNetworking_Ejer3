@@ -16,16 +16,16 @@ namespace BolNetworking_Ejer3
         bool timerStart = false;
         //int port = 135;
         int port = 31416;
-        bool finish = false;
-        int timeWait = 20;
+        static int time = 10;
+        int timeWait = time;
         private static readonly object l = new object();
+        private static readonly object lTime = new object();
         List<StreamWriter> swClients = new List<StreamWriter>();
         List<int> numbers = new List<int>();
         Random random = new Random();
 
         static void Main(string[] args)
         {
-            int cont = 0;
             bool puertoValido = false;
             Program p = new Program();
             while (!puertoValido)
@@ -47,11 +47,12 @@ namespace BolNetworking_Ejer3
                             rand = p.random.Next(1, 21);
                         }
                         Thread hilo = new Thread(() => p.ClientThread(cliente, rand));
+                        hilo.IsBackground = true;
                         hilo.Start();
-                        cont++;
-                        if (cont >= 2 && !p.timerStart)
+                        p.contClients++;
+                        if (p.contClients >= 2 && !p.timerStart)
                         {
-                            Thread time = new Thread(() => p.ThreadTime());
+                            Thread time = new Thread(() => p.ThreadTime(p));
                             time.Start();
                         }
                     }
@@ -80,36 +81,27 @@ namespace BolNetworking_Ejer3
                         {
                             lock (l)
                             {
-                                contClients++;
                                 numbers.Add(rand);
                                 swClients.Add(sw);
                             }
                             sw.WriteLine("Welcome to the highest number game");
                             sw.Flush();
-
-                            while (!finish) { }
+                            lock (lTime)
+                                Monitor.Wait(lTime);
                             lock (l)
                             {
-                                if (contClients >= 2)
+                                sw.WriteLine("Your number was " + rand);
+                                if (rand == numbers.Max())
                                 {
-                                    sw.WriteLine("Your number was " + rand);
-                                    if (rand == numbers.Max())
-                                    {
-                                        sw.WriteLine("Congrats, you are the winner");
-                                    }
-                                    else
-                                    {
-                                        sw.WriteLine("Sorry, you didn't win");
-                                        sw.WriteLine("The winning number was " + numbers.Max());
-                                    }
+                                    sw.WriteLine("Congrats, you are the winner");
                                 }
                                 else
                                 {
-                                    sw.WriteLine("There are not enough players");
+                                    sw.WriteLine("Sorry, you didn't win");
+                                    sw.WriteLine("The winning number was " + numbers.Max());
                                 }
                                 sw.Flush();
                             }
-                            client.Close();
                         }
                     }
                 }
@@ -122,11 +114,13 @@ namespace BolNetworking_Ejer3
                     numbers.Remove(rand);
                     swClients.Remove(sw);
                 }
-                client.Close();
             }
+            lock (lTime)
+                Monitor.Pulse(lTime);
+            client.Close();
         }
 
-        private void ThreadTime()
+        private void ThreadTime(Program p)
         {
             timerStart = true;
             while (timeWait > 0)
@@ -134,33 +128,51 @@ namespace BolNetworking_Ejer3
                 Thread.Sleep(1000);
                 lock (l)
                 {
-                    try
+                    for (int i = 0; i < swClients.Count; i++)
                     {
-                        for (int i = 0; i < swClients.Count; i++)
+                        try
                         {
-                            try
+                            swClients[i].WriteLine(timeWait + " seconds left to start, there are " + contClients + " players");
+                            swClients[i].Flush();
+                        }
+                        catch (IOException)
+                        {
+                            lock (l)
                             {
-                                swClients[i].WriteLine(timeWait + " seconds left to start, there are " + contClients + " players");
-                                swClients[i].Flush();
-                            }
-                            catch (IOException)
-                            {
-                                lock (l)
-                                {
-                                    swClients.Remove(swClients[i]);
-                                    numbers.RemoveAt(i);
-                                    contClients--;
-                                }
+                                swClients.Remove(swClients[i]);
+                                numbers.RemoveAt(i);
+                                contClients--;
                             }
                         }
                     }
-                    catch (InvalidOperationException) { }
                 }
                 timeWait--;
             }
-            finish = true;
-            Console.WriteLine("There was " + contClients + " players and the highest number was " + numbers.Max());
-            Console.ReadLine();
+            lock (lTime)
+            {
+                try
+                {
+                    Console.WriteLine("There was " + contClients + " players and the highest number was " + numbers.Max());
+                    for (int i = 0; i < contClients; i++)
+                    {
+                        Monitor.Pulse(lTime);
+                    }
+                }
+                catch (InvalidOperationException)
+                {
+                    Console.WriteLine("There was no players");
+                }
+            }
+            Thread.Sleep(1000);
+            lock (l)
+            {
+                swClients.Clear();
+                numbers.Clear();
+                p.contClients = 0;
+                p.timerStart = false;
+                timeWait = time;
+            }
+            Console.WriteLine("Waiting new players");
         }
     }
 }
