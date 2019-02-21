@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 
 namespace BolNetworking_Ejer3
 {
+    //Validado
     class Program
     {
         int contClients = 0;
@@ -144,6 +145,7 @@ namespace BolNetworking_Ejer3
                                 contClients--;
                             }
                         }
+                        catch (ObjectDisposedException) { }
                     }
                 }
                 timeWait--;
@@ -153,10 +155,7 @@ namespace BolNetworking_Ejer3
                 try
                 {
                     Console.WriteLine("There was " + contClients + " players and the highest number was " + numbers.Max());
-                    for (int i = 0; i < contClients; i++)
-                    {
-                        Monitor.Pulse(lTime);
-                    }
+                    Monitor.PulseAll(lTime);
                 }
                 catch (InvalidOperationException)
                 {
